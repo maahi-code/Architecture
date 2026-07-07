@@ -21,13 +21,28 @@ Cons:
  - No seperate between views and data layers
  - Not testable, mockable, or resuable
  
+ 2. MV Architecture( Vanilla SwiftUI)
+ - Data Manager shared accross the app
+ - Data Manager are reponsible for business logic but and Data Logic
  
+ Pros:
+ - Less code
+ - Easy to reuse bussiness logic
+ 
+ Cons:
+ - Tightly coupled business logic to the data logic
+ - "Too Easy" to reuse data(other view's can effect each other)
+ - Data Manager semi testable
+ 
+ 
+
  
  
  
  3. MVC Architecture (Vanilla SwiftUI)
  
- - There is a Data Manager, Views are reponsible for some business logic but not Data Logic
+ - There is a Data Manager,
+ - Views are reponsible for some business logic but not Data Logic
  - Vies holds the Arrary of Products
  
  Pros:
