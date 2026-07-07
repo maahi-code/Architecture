@@ -45,11 +45,3 @@ Cons:
 - Business logic may still be hard to test in isolation
 - Can grow into a large, hard-to-maintain view/controller structure
 
-## Current Implementation Example
-
-The app currently uses:
-
-- DataManager as an observable shared object
-- async data loading with .task
-- environment injection for dependency access
-- a service layer for fetching products
