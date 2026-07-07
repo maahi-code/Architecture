@@ -1,32 +1,55 @@
 
-ARCHITECTURE NOTES
+## Architecture 
 
-1. No Architecture (Vanilla SwiftUI)
+### 1. No Architecture (Vanilla SwiftUI)
 
-- There is no Data Manager, Views are responsible for all business logic & Data Logic
-- View Holds the Arrary of Products
-
-Pros:
-- Simplest Code
-- Easy to setup, lower chances of bugs
-
-Cons:
-- No seperate between views and data layers
-- Not testable, mockable, or resuable
-
-// 2. 
-
-
-
-3. MVC Architecture (Vanilla SwiftUI)
-
-- There is a Data Manager, Views are reponsible for some business logic but not Data Logic
-- Vies holds the Arrary of Products
+- No data manager is used.
+- The view is responsible for both business logic and data logic.
+- The view often holds the product array directly.
 
 Pros:
-- Data Manager is shared across application
-- Data Manager is testable, mockable, or resuable
+- Simplest setup
+- Easy to understand
+- Fewer moving parts
 
 Cons:
-- Business logic is not testable
-- Masive View Controller problem
+- Tight coupling between UI and data logic
+- Harder to test and reuse
+
+### 2. MV Architecture (Vanilla SwiftUI)
+
+ - Data Manager shared accross the app
+ - Data Manager are reponsible for business logic but and Data Logic
+ 
+ Pros:
+ - Less code
+ - Easy to reuse bussiness logic
+ 
+ Cons:
+ - Tightly coupled business logic to the data logic
+ - "Too Easy" to reuse data(other view's can effect each other)
+ - Data Manager semi testable
+
+### 3. MVC Architecture (Vanilla SwiftUI)
+
+- The view handles presentation.
+- A data manager or controller-like component handles app logic.
+- Data-related responsibilities are separated from UI code.
+
+Pros:
+- Better organization than pure view-based code
+- Shared data handling across the app
+- More testable than no-architecture approaches
+
+Cons:
+- Business logic may still be hard to test in isolation
+- Can grow into a large, hard-to-maintain view/controller structure
+
+## Current Implementation Example
+
+The app currently uses:
+
+- DataManager as an observable shared object
+- async data loading with .task
+- environment injection for dependency access
+- a service layer for fetching products
