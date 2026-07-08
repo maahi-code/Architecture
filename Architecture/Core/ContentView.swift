@@ -35,10 +35,6 @@ Cons:
  - Data Manager semi testable
  
  
-
- 
- 
- 
  3. MVC Architecture (Vanilla SwiftUI)
  
  - There is a Data Manager,
@@ -52,6 +48,25 @@ Cons:
  Cons:
   - Business logic is not testable
   - Masive View Controller problem
+ 
+ 
+ 4. MVVM Architecture
+ 
+ - Data Manager shared accross the app, but access from the View Model
+ - ViewModels are reponsible for business logic
+ - ViewModels holds the array of products
+ 
+ 
+Pros:
+ - Seperated the View from business logic
+ - Business logic is now testable
+ - View code much now much cleaner
+ 
+ 
+Cons:
+ - More difficult to setup and inject dependencies
+ - ViewModel lifecycle is outside of View lifecycle ( Cannot use SwiftUI Property wrappersW
+ 
  
  */
 import SwiftUI
@@ -69,21 +84,17 @@ class DataManager {
     }
     
 }
-struct ContentView: View {
-    @Environment(DataManager.self) private var dataManager
-    @State private var products: [Product] = []
-    var body: some View {
-        VStack(alignment: .leading) {
-            ForEach(products) { product in
-                Text(product.title)
-            }
-        }
-        .padding()
-        .task {
-            await loadData()
-        }
+@Observable
+class ContentViewModel {
+    let dataManager: DataManager
+    var products: [Product] = []
+    var products2: [Product] = []
+    var products3: [Product] = []
+    
+    init(dataManager: DataManager) {
+        self.dataManager = dataManager
     }
-    private func loadData() async {
+    func loadData() async {
         do {
             products = try await dataManager.getProduct()
         } catch {
@@ -91,8 +102,22 @@ struct ContentView: View {
         }
     }
 }
+struct ContentView: View {
+    @State var viewModel: ContentViewModel
+    var body: some View {
+        VStack(alignment: .leading) {
+            ForEach(viewModel.products) { product in
+                Text(product.title)
+            }
+        }
+        .padding()
+        .task {
+            await viewModel.loadData()
+        }
+    }
+}
 
 #Preview {
-    ContentView()
-        .environment(DataManager(service: MockDataService()))
+    ContentView(
+        viewModel: ContentViewModel(dataManager: DataManager(service: MockDataService())))
 }
