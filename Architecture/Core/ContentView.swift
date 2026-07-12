@@ -72,6 +72,12 @@ Cons:
 import SwiftUI
 @MainActor
 @Observable
+class UserManager {
+    
+    
+}
+@MainActor
+@Observable
 class DataManager {
     private let service: DataService
     
@@ -87,12 +93,14 @@ class DataManager {
 @Observable
 class ContentViewModel {
     let dataManager: DataManager
+    let userManager: UserManager
     var products: [Product] = []
     var products2: [Product] = []
     var products3: [Product] = []
     
-    init(dataManager: DataManager) {
-        self.dataManager = dataManager
+    init(container: DependenciesContainer) {
+        self.dataManager = container.resolve(type: DataManager.self)!
+        self.userManager = container.resolve(type: UserManager.self)!
     }
     func loadData() async {
         do {
@@ -117,7 +125,29 @@ struct ContentView: View {
     }
 }
 
+@MainActor
+class DependenciesContainer {
+    private var services: [String: Any] = [:]
+    
+    func register<T>(type: T.Type, service: T) {
+        let key = "\(type)"
+        services[key] = service
+    }
+    func register<T>(type: T.Type, service: () -> T) {
+        let key = "\(type)"
+        services[key] = service()
+    }
+    
+    func resolve<T>(type: T.Type) -> T? {
+        let key = "\(type)"
+        return services[key] as? T
+    }
+}
 #Preview {
-    ContentView(
-        viewModel: ContentViewModel(dataManager: DataManager(service: MockDataService())))
+    let container = DependenciesContainer()
+    container.register(
+            type: DataManager.self,
+            service: DataManager(service: MockDataService()))
+    container.register(type: UserManager.self, service: UserManager())
+    return ContentView(viewModel: ContentViewModel(container: container))
 }
