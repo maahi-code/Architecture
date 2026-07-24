@@ -69,6 +69,44 @@ Cons:
  
  
  */
+
+
+@MainActor
+protocol ContentViewModelInteractor {
+    func getProduct() async throws -> [Product]
+    func getUser() async throws -> String
+}
+
+protocol HomeViewModelInteractor {
+    func getMovies() async throws -> [String]
+    func getUser() async throws -> String
+}
+
+struct CoreInteractor: HomeViewModelInteractor, ContentViewModelInteractor {
+    let dataManager: DataManager
+    let userManager: UserManager
+    
+    init(container: DependenciesContainer) {
+        self.dataManager = container.resolve(DataManager.self)!
+        self.userManager = container.resolve(UserManager.self)!
+    }
+    
+    func getProduct() async throws -> [Product] {
+        try await dataManager.getProduct()
+    }
+
+    func getUser() async throws -> String {
+        try await userManager.getUser()
+    }
+    
+    func getMovies() async throws -> [String] {
+        try await dataManager.getMovies()
+    }
+    
+    
+    
+}
+
 import SwiftUI
 @MainActor
 @Observable
@@ -92,53 +130,46 @@ class DataManager {
         try await service.getProduct()
     }
     
-    func getMoveis() async throws -> [String] {
+    func getMovies() async throws -> [String] {
         ["Obsession"]
     }
     
 }
-struct ProductionContentViewModelInteractor: ContentViewModelInteractor {
-   
-    let dataManager: DataManager
-    let userManager: UserManager
-    
-    init(container: DependenciesContainer) {
-        self.dataManager = container.resolve(type: DataManager.self)!
-        self.userManager = container.resolve(type: UserManager.self)!
-    }
-    
-    
-    func getProduct() async throws -> [Product] {
-        try await dataManager.getProduct()
-    }
+//struct ProductionContentViewModelInteractor: ContentViewModelInteractor {
+//   
+//    let dataManager: DataManager
+//    let userManager: UserManager
+//    
+//    init(container: DependenciesContainer) {
+//        self.dataManager = container.resolve(DataManager.self)!
+//        self.userManager = container.resolve(UserManager.self)!
+//    }
+//    
+//    
+//    func getProduct() async throws -> [Product] {
+//        try await dataManager.getProduct()
+//    }
+//
+//    func getUser() async throws -> String {
+//        try await userManager.getUser()
+//    }
+//    
+//}
 
-    func getUser() async throws -> String {
-        try await userManager.getUser()
-    }
-    
-}
-
-struct MockContentViewModelInteractor: ContentViewModelInteractor {
-   
-    
-    func getProduct() async throws -> [Product] {
-        [
-            Product(id: 1, title: "My first project")
-        ]
-    }
-
-    func getUser() async throws -> String {
-        "_new_user"
-    }
-    
-}
-
-
-@MainActor
-protocol ContentViewModelInteractor {
-    func getProduct() async throws -> [Product]
-    func getUser() async throws -> String
-}
+//struct MockContentViewModelInteractor: ContentViewModelInteractor {
+//   
+//    
+//    func getProduct() async throws -> [Product] {
+//        [
+//            Product(id: 1, title: "My first project")
+//        ]
+//    }
+//
+//    func getUser() async throws -> String {
+//        "_new_user"
+//    }
+//    
+//}
 
 @Observable
 class ContentViewModel {
@@ -151,13 +182,14 @@ class ContentViewModel {
     }
     func loadData() async {
         do {
-            let uid = try await interactor.getUser()
+            let _ = try await interactor.getUser()
             products = try await interactor.getProduct()
         } catch {
             print(error)
         }
     }
 }
+
 struct ContentView: View {
     @State var viewModel: ContentViewModel
     var body: some View {
@@ -173,24 +205,83 @@ struct ContentView: View {
     }
 }
 
+struct HomeView: View {
+    @State var viewModel: HomeViewModel
+    var body: some View {
+        VStack(alignment: .leading) {
+            ForEach(viewModel.movies, id: \.self) { movie in
+                Text(movie)
+                    .foregroundStyle(.blue)
+            }
+        }
+        .padding()
+        .task {
+            await viewModel.loadData()
+        }
+    }
+}
+//struct ProductionHomeViewModelInteractor: HomeViewModelInteractor {
+//    let dataManager: DataManager
+//    let userManager: UserManager
+//    
+//    init(container: DependenciesContainer) {
+//        self.dataManager = container.resolve(DataManager.self)!
+//        self.userManager = container.resolve(UserManager.self)!
+//    }
+//
+//    func getUser() async throws -> String {
+//        try await userManager.getUser()
+//    }
+//    
+//    func getMovies() async throws -> [String] {
+//        try await dataManager.getMovies()
+//    }
+//    
+//}
+
+
+@MainActor
+@Observable
+class HomeViewModel {
+    let interactor: HomeViewModelInteractor
+     
+    var movies: [String] = []
+     
+    init(interactor: HomeViewModelInteractor) {
+         self.interactor = interactor
+     }
+     func loadData() async {
+         do {
+             let _ = try await interactor.getUser()
+             movies = try await interactor.getMovies()
+         } catch {
+             print(error)
+         }
+     }
+}
+
 @MainActor
 class DependenciesContainer {
     private var services: [String: Any] = [:]
     
-    func register<T>(type: T.Type, service: T) {
+    func register<T>(_ type: T.Type, service: T) {
         let key = "\(type)"
         services[key] = service
     }
-    func register<T>(type: T.Type, service: () -> T) {
+    func register<T>(_ type: T.Type, service: () -> T) {
         let key = "\(type)"
         services[key] = service()
     }
     
-    func resolve<T>(type: T.Type) -> T? {
+    func resolve<T>(_ type: T.Type) -> T? {
         let key = "\(type)"
         return services[key] as? T
     }
 }
 #Preview {
-    return ContentView(viewModel: ContentViewModel(interactor: MockContentViewModelInteractor()))
+    let container = DependenciesContainer()
+    container.register(DataManager.self, service: DataManager(service: MockDataService()))
+    container.register(UserManager.self, service: UserManager())
+//    return HomeView(viewModel: HomeViewModel(interactor: CoreInteractor(container: container)))
+    return  ContentView(viewModel: ContentViewModel(interactor: CoreInteractor(container: container)))
 }
