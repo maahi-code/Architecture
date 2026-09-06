@@ -15,7 +15,10 @@ enum NavigationDestinationOption: Hashable {
 
 struct AnyDestination: Hashable {
     let id = UUID().uuidString
-    var destination: () -> AnyView
+    var destination: AnyView
+    init<T: View> (destination: T) {
+        self.destination = AnyView(destination)
+    }
     
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
@@ -25,50 +28,48 @@ struct AnyDestination: Hashable {
         lhs.hashValue == rhs.hashValue
     }
 }
+
+protocol Router {
+     func showScreen<T: View>(@ViewBuilder destination: () -> T)
+}
+struct RouterView<Content: View> : View, Router {
+    @State private var path: [AnyDestination] = []
+    @ViewBuilder var content: (Router) -> Content
+    var body: some View {
+        NavigationStack(path: $path) {
+            content(self)
+                .navigationDestination(for: AnyDestination.self) { value in
+                    value.destination
+                }
+            
+        }
+    }
+    func showScreen<T: View>(@ViewBuilder destination: () -> T) {
+        let destination = AnyDestination(destination: destination())
+        path.append(destination)
+    }
+}
 struct ProfileView: View {
     @State private var path: [AnyDestination] = []
     var body: some View {
-        NavigationStack(path: $path) {
+        RouterView { router in
             VStack(spacing: 50) {
                 Button {
-                    path.append(AnyDestination(destination: {
-                        Text("Hello There!").any()
-                    }))
+                    router.showScreen {
+                        ZStack {
+                            Color.blue.ignoresSafeArea()
+                            Text("NEW SCREEN HORRAY!!!")
+                                .font(.title)
+                                .foregroundStyle(.white)
+                                .bold()
+                        }
+                    }
                 } label: {
                     Text("Click me")
                 }
-                
-                Button {
-                    path.append(AnyDestination(destination: {
-                        Text("Integer!").any()
-                    }))
-                } label: {
-                    Text("Click me")
-                        .foregroundStyle(.red)
-                }
-                Button {
-                    goToContentView()
-                } label: {
-                    Text("CLICK ME")
-                        .foregroundStyle(.black)
-                }
-                
             }
-            .navigationDestination(for: AnyDestination.self) { value in
-                value.destination()
-            }
+                
         }
-    }
-    
-    func goToContentView() {
-        let container = DependenciesContainer()
-        container.register(DataManager.self, service: DataManager(service: MockDataService()))
-        container.register(UserManager.self, service: UserManager())
-        path.append(
-            AnyDestination(destination: {
-                ContentView(viewModel: ContentViewModel(interactor: CoreInteractor(container: container)))
-                    .any()
-            }))
     }
 }
 
