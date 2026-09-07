@@ -29,16 +29,37 @@ struct AnyDestination: Hashable {
     }
 }
 
+extension EnvironmentValues {
+    @Entry var router: Router = MockRouter()
+}
+
+
+struct MockRouter: Router {
+    func showScreen<T>(destination: @escaping (any Router) -> T) where T : View {
+        print("Mock Router don't work!!!")
+    }
+    func dismissScreen() {
+        print("Mock Router don't work!!!")
+    }
+}
+
 protocol Router {
     func showScreen<T: View>(@ViewBuilder destination: @escaping (Router) -> T)
     func dismissScreen()
 }
+
+
+
 struct RouterView<Content: View> : View, Router {
     @State private var path: [AnyDestination] = []
+    
     // @Binding to the view stack from previous RouteViews
     @Binding var screenStack: [AnyDestination]
+    
     var addNavigationView: Bool
+    
     @ViewBuilder var content: (Router) -> Content
+    
     @Environment(\.dismiss) private var dismiss
     
     init(
@@ -50,13 +71,17 @@ struct RouterView<Content: View> : View, Router {
         self.addNavigationView = addNavigationView
         self.content = content
     }
+    
+    
     var body: some View {
-        NavigationStackIfNeeded(
-            path: $path,
-            addNavigationView: addNavigationView) {
-                content(self)
-            }
+        NavigationStackIfNeeded(path: $path, addNavigationView: addNavigationView) {
+            content(self)
+        }
+        .environment(\.router, self)
     }
+    
+    
+    
     func showScreen<T: View>(@ViewBuilder destination: @escaping (Router) -> T) {
         let screen = RouterView<T>(
             screenStack: screenStack.isEmpty ? $path : $screenStack,
@@ -111,12 +136,12 @@ struct NavigationStackIfNeeded<Content: View> : View {
 }
 struct ProfileView: View {
     @State private var path: [AnyDestination] = []
-    let router: Router
+    @Environment(\.router) private var router
     var body: some View {
         VStack(spacing: 50) {
             Button {
-                router.showScreen { router in
-                    SettingsView(router: router)
+                router.showScreen { _ in
+                    SettingsView()
                 }
             } label: {
                 Text("Go to the Settings")
@@ -125,14 +150,8 @@ struct ProfileView: View {
     }
 }
 
-#Preview {
-    RouterView { router in
-        ProfileView(router: router)
-    }
-}
-
 struct SettingsView: View {
-    let router: Router
+    @Environment(\.router) var router
     var body: some View {
         ZStack {
             Color.blue.ignoresSafeArea()
@@ -159,8 +178,8 @@ struct SettingsView: View {
                     
                     
                     Button {
-                        router.showScreen { router in
-                            AccountView(router: router)
+                        router.showScreen { _ in
+                            AccountView()
                         }
                     } label: {
                         Text("Account Screen")
@@ -179,7 +198,7 @@ struct SettingsView: View {
     }
 }
 struct AccountView: View {
-    let router: Router
+    @Environment(\.router) var router
     var body: some View {
         ZStack {
             Color.blue.ignoresSafeArea()
@@ -206,8 +225,8 @@ struct AccountView: View {
                     
                     
                     Button {
-                        router.showScreen { router in
-                            AccountView(router: router)
+                        router.showScreen { _ in
+                            AccountView()
                         }
                     } label: {
                         Text("Account Screen")
@@ -225,6 +244,14 @@ struct AccountView: View {
         }
     }
 }
+
+#Preview {
+    RouterView { _ in
+        ProfileView()
+    }
+}
+
+
 extension View {
     func any() -> AnyView {
         AnyView(self)
