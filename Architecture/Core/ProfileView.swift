@@ -14,6 +14,7 @@ struct ProfileView: View {
         List {
             segueSection
             alertSection
+            modalSection
             
         }
         .navigationTitle("Routing Examples")
@@ -42,6 +43,13 @@ struct ProfileView: View {
                 }
             } label: {
                 Text("FullScreenCover")
+            }
+            Button {
+                router.showScreen(.fullScreenCover) { _ in
+                    ProfileView()
+                }
+            } label: {
+                Text("Modal")
             }
             Button {
                 router.dismissScreen()
@@ -83,6 +91,35 @@ struct ProfileView: View {
             }
         } header: {
             Text("Alerts")
+        }
+    }
+    
+    private var modalSection: some View  {
+        Section {
+            Button {
+                router
+                    .showModal(
+                        backgroundColor: .red.opacity(0.2),
+                        transition: .slide
+                    ) {
+                            RoundedRectangle(cornerRadius: 30)
+                                .fill(.blue)
+                                .frame(maxHeight: 250)
+                                .padding(40)
+                                .onTapGesture {
+                                    router.dismissModal()
+                                }
+                        }
+            } label: {
+                Text("Modal")
+            }
+            Button {
+                router.dismissModal()
+            } label: {
+                Text("Dismiss Modal")
+            }
+        } header: {
+            Text("Modals")
         }
     }
 }

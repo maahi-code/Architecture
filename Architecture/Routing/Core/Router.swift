@@ -24,6 +24,14 @@ struct MockRouter: Router {
     func dimissAlert() {
         print("Mock Router don't work!!!")
     }
+    func showModal<T: View>(backgroundColor: Color, transition: AnyTransition, @ViewBuilder destination: @escaping () -> T) {
+        print("Mock Router don't work!!!")
+    }
+    
+    func dismissModal() {
+        print("Mock router don't work !!!")
+    }
+    
 }
 
 protocol Router {
@@ -31,4 +39,6 @@ protocol Router {
     func dismissScreen()
     func showAlert(_ option: AlertType,  title: String, subtitle: String?, button: (@Sendable () -> AnyView)?) 
     func dimissAlert()
+    func showModal<T: View>(backgroundColor: Color, transition: AnyTransition, @ViewBuilder destination: @escaping () -> T)
+    func dismissModal()
 }
