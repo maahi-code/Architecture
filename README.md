@@ -71,12 +71,12 @@ This is the pressure that leads to the next step: move shared work into a Manage
 <table>
 <tr>
 <td width="50%" valign="top">
-<img src="docs/03-mv-shared-environment-managers.jpg" alt="MV: shared Managers, Services, Models, and the SwiftUI View hierarchy" width="100%">
+<img src="docs/04-mvc-manager-boundary.jpg" alt="MV: a shared Manager between the SwiftUI View hierarchy and Services" width="100%">
 <p><strong>Step 2: MV</strong><br>Views use shared Managers.</p>
 </td>
 <td width="50%" valign="top">
-<img src="docs/04-mvc-manager-boundary.jpg" alt="MVC: a Manager boundary between Views and Services" width="100%">
-<p><strong>Step 3: MVC</strong><br>Views ask a Manager for data.</p>
+<img src="docs/03-mv-shared-environment-managers.jpg" alt="MVC: Managers connect the SwiftUI View hierarchy to Services and Models" width="100%">
+<p><strong>Step 3: MVC</strong><br>Views ask Managers for data.</p>
 </td>
 </tr>
 </table>
