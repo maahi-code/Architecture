@@ -12,12 +12,12 @@
  
  - There is no Data Manager, Views are responsible for all business logic & Data Logic
  - View Holds the Arrary of Products
-
-Pros:
+ 
+ Pros:
  - Simplest Code
  - Easy to setup, lower chances of bugs
  
-Cons:
+ Cons:
  - No seperate between views and data layers
  - Not testable, mockable, or resuable
  
@@ -42,12 +42,12 @@ Cons:
  - Vies holds the Arrary of Products
  
  Pros:
-  - Data Manager is shared across application
-  - Data Manager is testable, mockable, or resuable
-  
+ - Data Manager is shared across application
+ - Data Manager is testable, mockable, or resuable
+ 
  Cons:
-  - Business logic is not testable
-  - Masive View Controller problem
+ - Business logic is not testable
+ - Masive View Controller problem
  
  
  4. MVVM Architecture
@@ -57,63 +57,72 @@ Cons:
  - ViewModels holds the array of products
  
  
-Pros:
+ Pros:
  - Seperated the View from business logic
  - Business logic is now testable
  - View code much now much cleaner
  
  
-Cons:
+ Cons:
  - More difficult to setup and inject dependencies
  - ViewModel lifecycle is outside of View lifecycle ( Cannot use SwiftUI Property wrappers
  
  
  5. MVVM Archiecture + DI Container
-
-Pros:
+ 
+ Pros:
  - Same as MVVM Architecture, but much easier to manage dependencies
  
  
-Cons:
+ Cons:
  - Add abstraction to the dependencies(ie. app will crash if dependencies is not there)
-
-
+ 
+ 
  6 - MVVM Architecture + Protocols (Interactor)
-
-Pros:
+ 
+ Pros:
  - Same as MVVM Architecture, but fully decoupled dependencies from view models
  - Easier to test!
-
-Cons:
+ 
+ Cons:
  - Much more work to setup, and maintain
-
-
+ 
+ 
  7 - MVVM Architecture + Protocols + Shared Conformance (CoreInteractor)
-
+ 
  Pros:
  - Same as above, but easier to steup and maintain
  
  
-Cons:
- - Single large interactor for per module 
-
+ Cons:
+ - Single large interactor for per module
+ 
  8 - MVVM Architecture + Protocols + Shared Conformance + Builder(CoreBuilder)
-
+ 
  Pros:
  - Same as above
  - Now decopuled routine destinations between views
- - Removed the SwiftUI Enviroment Entirely 
+ - Removed the SwiftUI Enviroment Entirely
  
  
-Cons:
+ Cons:
  - Much more work to setup, and maintain
-
-
+ 
+ 9 - VIPER
+ 
+ Pros:
+ - Same as above
+ - Now decopuled routing from views
+ 
+ 
+ Cons:
+ - Much more work to setup, and maintain
+ 
  */
 
 
 @MainActor
-protocol ContentViewModelInteractor {
+protocol ContentPresenterInteractor {
     func getProduct() async throws -> [Product]
     func getUser() async throws -> String
 }
@@ -123,7 +132,7 @@ protocol HomeViewModelInteractor {
     func getUser() async throws -> String
 }
 
-struct CoreInteractor: HomeViewModelInteractor, ContentViewModelInteractor {
+struct CoreInteractor: HomeViewModelInteractor, ContentPresenterInteractor {
     let dataManager: DataManager
     let userManager: UserManager
     
@@ -135,7 +144,7 @@ struct CoreInteractor: HomeViewModelInteractor, ContentViewModelInteractor {
     func getProduct() async throws -> [Product] {
         try await dataManager.getProduct()
     }
-
+    
     func getUser() async throws -> String {
         try await userManager.getUser()
     }
@@ -148,7 +157,20 @@ struct CoreInteractor: HomeViewModelInteractor, ContentViewModelInteractor {
     
 }
 
+struct CoreRouter {
+    let router: Router
+    
+    func goToProductView (product: Product) {
+        router.showScreen(.push) { _ in
+            Text(product.title)
+        }
+    }
+}
+
 import SwiftUI
+import CustomRouting
+
+
 @MainActor
 @Observable
 class UserManager {
@@ -158,6 +180,7 @@ class UserManager {
     }
     
 }
+
 @MainActor
 @Observable
 class DataManager {
@@ -176,50 +199,65 @@ class DataManager {
     }
     
 }
-//struct ProductionContentViewModelInteractor: ContentViewModelInteractor {
-//   
-//    let dataManager: DataManager
-//    let userManager: UserManager
-//    
-//    init(container: DependenciesContainer) {
-//        self.dataManager = container.resolve(DataManager.self)!
-//        self.userManager = container.resolve(UserManager.self)!
-//    }
-//    
-//    
-//    func getProduct() async throws -> [Product] {
-//        try await dataManager.getProduct()
-//    }
-//
-//    func getUser() async throws -> String {
-//        try await userManager.getUser()
-//    }
-//    
-//}
 
-//struct MockContentViewModelInteractor: ContentViewModelInteractor {
-//   
-//    
-//    func getProduct() async throws -> [Product] {
-//        [
-//            Product(id: 1, title: "My first project")
-//        ]
-//    }
-//
-//    func getUser() async throws -> String {
-//        "_new_user"
-//    }
-//    
-//}
+/*
+ struct ProductionContentPresenterInteractor: ContentPresenterInteractor {
+ 
+ let dataManager: DataManager
+ let userManager: UserManager
+ 
+ init(container: DependenciesContainer) {
+ self.dataManager = container.resolve(DataManager.self)!
+ self.userManager = container.resolve(UserManager.self)!
+ }
+ 
+ 
+ func getProduct() async throws -> [Product] {
+ try await dataManager.getProduct()
+ }
+ 
+ func getUser() async throws -> String {
+ try await userManager.getUser()
+ }
+ 
+ }
+ 
+ struct MockContentPresenterInteractor: ContentPresenterInteractor {
+ 
+ 
+ func getProduct() async throws -> [Product] {
+ [
+ Product(id: 1, title: "My first project")
+ ]
+ }
+ 
+ func getUser() async throws -> String {
+ "_new_user"
+ }
+ 
+ }
+ 
+ */
+
+protocol ContentPresenterRouter {
+    func goToProductView(product: Product)
+}
+
+extension CoreRouter: ContentPresenterRouter {}
 
 @Observable
-class ContentViewModel {
-   let interactor: ContentViewModelInteractor
-    
+@MainActor
+class ContentPresenter {
+    let interactor: ContentPresenterInteractor
+    let router: ContentPresenterRouter
     var products: [Product] = []
     
-    init(interactor: ContentViewModelInteractor) {
+    init(
+        interactor: ContentPresenterInteractor,
+        router: ContentPresenterRouter
+    ) {
         self.interactor = interactor
+        self.router = router
     }
     func loadData() async {
         do {
@@ -229,22 +267,54 @@ class ContentViewModel {
             print(error)
         }
     }
+    
+    func onRouterPressed(product: Product) {
+        router.goToProductView(product: product)
+    }
 }
 
 struct ContentView: View {
-    @State var viewModel: ContentViewModel
+    
+    @State var presenter: ContentPresenter
+    
     var body: some View {
         VStack(alignment: .leading) {
-            ForEach(viewModel.products) { product in
+            ForEach(presenter.products) { product in
                 Text(product.title)
+                    .onTapGesture {
+                        presenter.onRouterPressed(product: product)
+                    }
             }
         }
+        .navigationTitle("Content View")
         .padding()
         .task {
-            await viewModel.loadData()
+            await presenter.loadData()
         }
     }
 }
+
+/*
+ struct ProductionHomeViewModelInteractor: HomeViewModelInteractor {
+     let dataManager: DataManager
+     let userManager: UserManager
+
+     init(container: DependenciesContainer) {
+         self.dataManager = container.resolve(DataManager.self)!
+         self.userManager = container.resolve(UserManager.self)!
+     }
+
+     func getUser() async throws -> String {
+         try await userManager.getUser()
+     }
+
+     func getMovies() async throws -> [String] {
+         try await dataManager.getMovies()
+     }
+
+ }
+ 
+ */
 
 struct HomeView: View {
     @State var viewModel: HomeViewModel
@@ -261,44 +331,26 @@ struct HomeView: View {
         }
     }
 }
-//struct ProductionHomeViewModelInteractor: HomeViewModelInteractor {
-//    let dataManager: DataManager
-//    let userManager: UserManager
-//    
-//    init(container: DependenciesContainer) {
-//        self.dataManager = container.resolve(DataManager.self)!
-//        self.userManager = container.resolve(UserManager.self)!
-//    }
-//
-//    func getUser() async throws -> String {
-//        try await userManager.getUser()
-//    }
-//    
-//    func getMovies() async throws -> [String] {
-//        try await dataManager.getMovies()
-//    }
-//    
-//}
 
 
 @MainActor
 @Observable
 class HomeViewModel {
     let interactor: HomeViewModelInteractor
-     
+    
     var movies: [String] = []
-     
+    
     init(interactor: HomeViewModelInteractor) {
-         self.interactor = interactor
-     }
-     func loadData() async {
-         do {
-             let _ = try await interactor.getUser()
-             movies = try await interactor.getMovies()
-         } catch {
-             print(error)
-         }
-     }
+        self.interactor = interactor
+    }
+    func loadData() async {
+        do {
+            let _ = try await interactor.getUser()
+            movies = try await interactor.getMovies()
+        } catch {
+            print(error)
+        }
+    }
 }
 
 @MainActor
@@ -323,6 +375,13 @@ class DependenciesContainer {
     let container = DependenciesContainer()
     container.register(DataManager.self, service: DataManager(service: MockDataService()))
     container.register(UserManager.self, service: UserManager())
-//    return HomeView(viewModel: HomeViewModel(interactor: CoreInteractor(container: container)))
-    return  ContentView(viewModel: ContentViewModel(interactor: CoreInteractor(container: container)))
+    //    return HomeView(viewModel: HomeViewModel(interactor: CoreInteractor(container: container)))
+    return RouterView  { router in
+        ContentView(
+            presenter: ContentPresenter(
+                interactor: CoreInteractor(container: container),
+                router: CoreRouter(router: router)
+            )
+        )
+    }
 }
