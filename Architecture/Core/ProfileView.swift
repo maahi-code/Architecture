@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import CustomRouting
 
 struct ProfileView: View {
     @State private var path: [AnyDestination] = []
@@ -43,13 +44,6 @@ struct ProfileView: View {
                 }
             } label: {
                 Text("FullScreenCover")
-            }
-            Button {
-                router.showScreen(.fullScreenCover) { _ in
-                    ProfileView()
-                }
-            } label: {
-                Text("Modal")
             }
             Button {
                 router.dismissScreen()

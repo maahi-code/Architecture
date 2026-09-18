@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		8458D96C305D2B5800C59715 /* CustomRouting in Frameworks */ = {isa = PBXBuildFile; productRef = 8458D96B305D2B5800C59715 /* CustomRouting */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		8420AF732FFBFDEA001C9F6E /* Architecture.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Architecture.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8458D96C305D2B5800C59715 /* CustomRouting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = Architecture;
 			packageProductDependencies = (
+				8458D96B305D2B5800C59715 /* CustomRouting */,
 			);
 			productName = Architecture;
 			productReference = 8420AF732FFBFDEA001C9F6E /* Architecture.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = 8420AF6A2FFBFDEA001C9F6E;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				8458D96A305D2B5800C59715 /* XCRemoteSwiftPackageReference "CustomRouting" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 8420AF742FFBFDEA001C9F6E /* Products */;
 			projectDirPath = "";
@@ -334,6 +343,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		8458D96A305D2B5800C59715 /* XCRemoteSwiftPackageReference "CustomRouting" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/maahi-code/CustomRouting.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		8458D96B305D2B5800C59715 /* CustomRouting */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8458D96A305D2B5800C59715 /* XCRemoteSwiftPackageReference "CustomRouting" */;
+			productName = CustomRouting;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 8420AF6B2FFBFDEA001C9F6E /* Project object */;
 }

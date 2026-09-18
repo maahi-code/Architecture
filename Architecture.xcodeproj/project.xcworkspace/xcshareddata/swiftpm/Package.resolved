@@ -1,0 +1,15 @@
+{
+  "originHash" : "626f26b5dc61d48d929293fff5a2250fed26cdf7a67a27f13f691a4372464ecd",
+  "pins" : [
+    {
+      "identity" : "customrouting",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/maahi-code/CustomRouting.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "a884b2a496b5368631ce1fb64afa7d365e24e942"
+      }
+    }
+  ],
+  "version" : 3
+}
