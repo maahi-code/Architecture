@@ -1,6 +1,6 @@
 # Architecture in SwiftUI
 
-This is a learning project that shows how a SwiftUI feature can grow from a simple View into a VIPER-style feature.
+A SwiftUI learning project that follows a feature from a simple View to VIPER, then explores how larger apps scale into separate flows using RIB-inspired composition.
 
 The goal is not to prove that one architecture is always best. The goal is to understand what changes when an app becomes larger:
 
@@ -12,13 +12,61 @@ The goal is not to prove that one architecture is always best. The goal is to un
 
 Each step adds a boundary when the previous step becomes difficult to test, reuse, or change. More architecture gives more separation, but it also gives more types and more setup. Use the smallest structure that keeps the feature understandable.
 
-## How to read the diagrams
+## Contents
 
-The diagrams are ordered by the learning notes in `ContentView.swift`.
+- [Architecture overview](#architecture-overview)
+- [Progression at a glance](#the-progression-at-a-glance)
+- [The 10 architecture steps](#the-architecture-progression)
+- [VIPER → RIBs](#10-ribs-scale-viper-into-separate-app-flows)
+- [How the current sample works](#how-the-current-sample-works)
+- [Routing example](#routing-example)
+- [Project structure](#project-structure)
+- [Requirements](#requirements)
 
-`00` is an overview of the first four ideas. `01` is step 1. `02` is not a separate architecture step; it shows the scaling problem that motivates MV. `03` is step 2, `04` is step 3, and so on.
+## Architecture overview
 
-![Overview: Vanilla SwiftUI, MV, MVC, and MVVM](docs/00-architecture-complexity-spectrum.jpg)
+The diagrams for steps 1–9 follow the learning notes in `ContentView.swift`. Step 10 shows how to organize those features into separate flow modules.
+
+The overview below shows the full progression through RIBs. `01` is step 1. `02` is not a separate architecture step; it shows the scaling problem that motivates MV. `03` is step 2, `04` is step 3, and so on. `10` shows the Root, Core, and Onboarding RIB boundaries.
+
+<p align="center">
+  <img src="docs/00-architecture-progression-through-ribs.png" alt="Architecture progression from Views only through MV, MVC, MVVM, VIPER, and RIBs" width="100%">
+</p>
+
+## The progression at a glance
+
+| Step | What the View owns | What the new boundary solves |
+| --- | --- | --- |
+| 1. No architecture | Data, business logic, and UI | Nothing is separated; the code is fastest to start. |
+| 2. MV | Data and some business logic | A shared Manager removes duplicated data work. |
+| 3. MVC | Data and some business logic, but not data access | Data access is kept out of the View. |
+| 4. MVVM | UI only; ViewModel owns screen state and logic | Presentation logic becomes testable. |
+| 5. MVVM + DI | UI only | Dependencies are composed outside the ViewModel. |
+| 6. MVVM + protocols | UI only | The feature depends on capabilities instead of concrete types. |
+| 7. CoreInteractor | UI only | Shared orchestration removes repeated Manager wiring. |
+| 8. Builder/composition | UI only | Feature creation and destinations move outside the View. |
+| 9. VIPER | UI only | Interactor and Router become explicit, independent feature boundaries. |
+| 10. RIB-inspired modules | UI only | Related VIPER screens gain separate Builders, Interactors, Routers, and deferred child construction. |
+
+The central idea is responsibility moving outward:
+
+```text
+View owns everything
+    ↓
+View + shared Manager
+    ↓
+View + Manager boundary
+    ↓
+View + ViewModel
+    ↓
+ViewModel + injected dependencies
+    ↓
+ViewModel + feature protocol
+    ↓
+Presenter + Interactor + Router
+    ↓
+Separate flow modules, each with its own composition
+```
 
 ## The architecture progression
 
@@ -66,6 +114,8 @@ This image is a transition, not a new architecture in the notes. As the app grow
 
 This is the pressure that leads to the next step: move shared work into a Manager.
 
+---
+
 ### 2. MV: add a shared Manager
 
 <table>
@@ -112,6 +162,8 @@ View
 
 MV solves duplicated data work. It does not yet make the View a purely presentational type.
 
+---
+
 ### 3. MVC: keep data access out of the View
 
 This is the **MVC version used in this learning project**. SwiftUI does not provide the same View–Controller lifecycle as UIKit, so this is an educational MVC-style separation rather than a strict claim about native SwiftUI MVC.
@@ -139,6 +191,8 @@ View
 - The View still owns both UI state and feature state.
 
 MVC is a useful step because it exposes the next problem: the View needs its own object for state and presentation logic.
+
+---
 
 ### 4. MVVM: give each screen a ViewModel
 
@@ -174,6 +228,8 @@ View
 
 MVVM is the main turning point: the View becomes responsible for displaying state instead of creating and coordinating the feature.
 
+---
+
 ### 5. MVVM + a dependency-injection container
 
 The ViewModel should not construct its own Managers. A dependency container creates and registers concrete objects, then supplies them when the feature is composed.
@@ -195,6 +251,8 @@ Composition root
 - If a required dependency is not registered, runtime resolution can fail.
 
 In the current sample, `DependenciesContainer` is used in the preview to build the feature.
+
+---
 
 ### 6. MVVM + feature protocols: introduce an Interactor boundary
 
@@ -221,6 +279,8 @@ The ViewModel depends on the feature capability, not on `DataManager`, `UserMana
 - Every feature needs a protocol and an implementation.
 - There is more code to create and maintain.
 
+---
+
 ### 7. Shared conformance: introduce `CoreInteractor`
 
 ![MVVM with a shared CoreInteractor](docs/07-mvvm-shared-core-interactor.jpg)
@@ -228,9 +288,9 @@ The ViewModel depends on the feature capability, not on `DataManager`, `UserMana
 Several feature protocols can be implemented by one shared `CoreInteractor`. It becomes the common bridge between feature capabilities and the Managers.
 
 ```text
-ContentPresenter  ──> ContentPresenterInteractor ──┐
-                                                    ├──> CoreInteractor
-HomeViewModel     ──> HomeViewModelInteractor     ──┘
+ContentPresenter ──> ContentPresenterInteractor ──┐
+                                                 ├──> CoreInteractor
+HomeViewModel    ──> HomeViewModelInteractor    ──┘
 ```
 
 **Pros**
@@ -242,6 +302,8 @@ HomeViewModel     ──> HomeViewModelInteractor     ──┘
 
 - One CoreInteractor can become a large “god object” for a module.
 - Keep each feature protocol small even when one implementation conforms to several protocols.
+
+---
 
 ### 8. Composition and routing outside the View
 
@@ -268,6 +330,8 @@ Composition root / Builder
 - The composition code must remain easy to navigate.
 
 The project demonstrates this idea with `DependenciesContainer` and preview composition. A dedicated `CoreBuilder` is shown in the learning diagram but is not currently a separate source type.
+
+---
 
 ### 9. VIPER: separate feature work and navigation
 
@@ -302,6 +366,122 @@ View
 - A small feature may become harder to follow than it needs to be.
 
 VIPER is not automatically better than MVVM. It is useful when the feature has enough business logic, navigation, or team complexity to justify these boundaries.
+
+---
+
+### 10. RIBs: scale VIPER into separate app flows
+
+> VIPER separates a screen’s responsibilities. RIB-inspired composition gives each app flow its own construction, business, and navigation boundaries.
+
+<p align="center">
+  <img src="docs/10-ribs-root-core-onboarding.jpg" alt="Root RIB composes separate Core and Onboarding RIBs" width="800">
+</p>
+
+This step follows a [reference implementation on the `viper` branch](https://github.com/maahi-code/AIChat/tree/viper). The current sample implements VIPER; the reference demonstrates how to scale beyond that composition.
+
+**RIB = Router · Interactor · Builder.** Views, Presenters, and Entities continue to work inside the module.
+
+#### From one shared module to three flows
+
+Previously, one `CoreBuilder` composed the app root, onboarding, and main tabs. The next structure separates them:
+
+| Module | Builder / Interactor / Router | Owns |
+| --- | --- | --- |
+| **Root** | `RootBuilder` · `RootInteractor` · `RootRouter` | App composition, startup authentication and login, and access to the current flow state. |
+| **Onboarding** | `OnbBuilder` · `OnbInteractor` · `OnbRouter` | Welcome, Intro, Color, Community, Completed, and account creation. |
+| **Core** | `CoreBuilder` · `CoreInteractor` · `CoreRouter` | Explore, Chats, Profile, and destinations such as Chat, Create Avatar, Settings, and Paywall. |
+
+The reference diagram repeats “Core” inside all three groups. The table gives the actual type names. `RootRouter` is currently a placeholder: root branch selection happens in `AppViewBuilder`.
+
+#### A VIPER screen inside a RIB
+
+```text
+OnbBuilder creates the Welcome feature
+    │
+    └── WelcomeView
+         └── WelcomePresenter
+              ├── WelcomeInteractor protocol → OnbInteractor → Managers
+              └── WelcomeRouter protocol     → OnbRouter     → destinations
+```
+
+`WelcomePresenter` still depends on the small `WelcomeInteractor` and `WelcomeRouter` protocols. The onboarding module supplies their implementations, so the View does not construct dependencies or destinations.
+
+| Role | Responsibility |
+| --- | --- |
+| **Builder** | Assembles the module’s Views, Presenters, Interactors, and Routers. |
+| **Interactor** | Exposes business operations and delegates to Managers. |
+| **Router** | Chooses the presentation and asks the Builder to create a destination. |
+| **View / Presenter** | Render UI, own observable screen state, and handle user events. |
+
+#### Lazy construction: build a flow when it is needed
+
+The shared `Builder` protocol exposes `build() -> AnyView`. `RootBuilder` stores two factories of type `() -> any Builder`, so its children can be created when their branch is selected.
+
+<details>
+<summary><strong>See the actual AppDelegate wiring</strong></summary>
+
+```swift
+builder = RootBuilder(
+    interactor: RootInteractor(container: dependencies.container),
+    loggedInRIB: {
+        CoreBuilder(interactor: CoreInteractor(container: self.dependencies.container))
+    },
+    loggedOutRIB: {
+        OnbBuilder(interactor: OnbInteractor(container: self.dependencies.container))
+    }
+)
+```
+
+</details>
+
+`AppViewBuilder` calls the View closure for the selected branch. That closure invokes the child factory and calls `build()`. During onboarding, the Core factory can remain unused.
+
+| Created when | Dependencies |
+| --- | --- |
+| **At startup** | Auth, User, Log, AB Test, and Purchase Managers; `AppState`; and the registered Service implementations. |
+| **When Core is constructed** | `CoreInteractor` creates `AIManager`, `AvatarManager`, `ChatManager`, and `PushManager` using its dependencies. |
+
+**Lifetime matters:** the factories defer construction; they do not cache a child. Calling the Core factory again creates another Interactor and its module-owned Managers. Service implementations are still created at startup.
+
+#### Following the transition: Onboarding → Core
+
+1. The user taps **Finish** in `OnboardingCompletedView`.
+2. Its Presenter asks `OnbInteractor` to save the profile.
+3. `OnbInteractor` updates the shared `AppState.showTabBar` to `true`.
+4. `AppPresenter` exposes that flag, and `AppViewBuilder` selects the tab-bar branch.
+5. `RootBuilder` invokes the Core factory and builds the main app.
+
+Onboarding reports the flow change through shared state; it does not construct the main-app screens. The `loggedInRIB` / `loggedOutRIB` names describe those branches. The switch uses `showTabBar`, rather than authentication alone, because authentication can also be anonymous.
+
+#### Growing into smaller child RIBs
+
+This example uses **RIB-inspired SwiftUI composition** with `CustomRouting` and existing VIPER Presenters. Uber’s full RIBs model also manages child attachment/detachment and Interactor activation, keeping business work within an active module’s lifetime. [RIBs architecture reference](https://github.com/uber/RIBs/wiki)
+
+As Core grows:
+
+1. **Split cohesive flows.** Give Chat or Avatar Creation a child Builder, Interactor, and Router; retain its existing Views and Presenters.
+2. **Keep dependencies small.** Inject capability protocols rather than the entire container. Some Presenter initializers in the reference still accept concrete Interactors, so this remains a useful next step.
+3. **Report completion to the parent.** Pass inputs into the child and return events through a callback or listener. The parent selects the next flow.
+4. **Define ownership and cleanup.** Decide who retains each child and when it ends. Cancel its Tasks and streams on exit; lazy creation alone does not manage its lifetime.
+
+| Benefits | Trade-offs |
+| --- | --- |
+| Separate composition, business, and routing boundaries for Onboarding and Core. | More wiring and cross-module contracts. |
+| Core Managers can be deferred until the main flow is needed. | Repeated factory calls require deliberate ownership. |
+| Smaller contracts support independent development and testing. | Shared Managers and `AppState` still connect the flows. |
+
+Add a module boundary when a flow needs independent composition and ownership. A small screen can continue using VIPER or MVVM within that module.
+
+<details>
+<summary><strong>Implementation references — viper branch</strong></summary>
+
+- [RootBuilder](https://github.com/maahi-code/AIChat/blob/viper/AIChat/Root/RIBs/Root/RootBuilder.swift), [OnbBuilder](https://github.com/maahi-code/AIChat/blob/viper/AIChat/Root/RIBs/Onboarding/OnbBuilder.swift), and [CoreBuilder](https://github.com/maahi-code/AIChat/blob/viper/AIChat/Root/RIBs/Core/CoreBuilder.swift)
+- [Builder contract](https://github.com/maahi-code/AIChat/blob/viper/AIChat/Root/RIBs/Builder.swift) and [AppDelegate wiring](https://github.com/maahi-code/AIChat/blob/viper/AIChat/Root/AppDelegate.swift)
+- [Branch selection](https://github.com/maahi-code/AIChat/blob/viper/AIChat/Core/AppView/AppViewBuilder.swift) and [onboarding completion](https://github.com/maahi-code/AIChat/blob/viper/AIChat/Core/Onboarding/CompletedView/OnboardingCompletedPresenter.swift)
+- [Shared dependencies](https://github.com/maahi-code/AIChat/blob/viper/AIChat/Root/Dependencies.swift) and [CoreInteractor](https://github.com/maahi-code/AIChat/blob/viper/AIChat/Root/RIBs/Core/CoreInteractor.swift)
+- [Lazy-loading commit: 93cb0de](https://github.com/maahi-code/AIChat/commit/93cb0de1375108ba116d6f7798b036917aee83c9)
+
+</details>
 
 ## How the current sample works
 
@@ -365,38 +545,6 @@ CoreRouter.goToProductView(product:)
 
 The View does not know whether navigation uses a push, sheet, full-screen cover, or another mechanism. That decision belongs to the Router.
 
-## The progression in one table
-
-| Step | What the View owns | What the new boundary solves |
-| --- | --- | --- |
-| 1. No architecture | Data, business logic, and UI | Nothing is separated; the code is fastest to start. |
-| 2. MV | Data and some business logic | A shared Manager removes duplicated data work. |
-| 3. MVC | Data and some business logic, but not data access | Data access is kept out of the View. |
-| 4. MVVM | UI only; ViewModel owns screen state and logic | Presentation logic becomes testable. |
-| 5. MVVM + DI | UI only | Dependencies are composed outside the ViewModel. |
-| 6. MVVM + protocols | UI only | The feature depends on capabilities instead of concrete types. |
-| 7. CoreInteractor | UI only | Shared orchestration removes repeated Manager wiring. |
-| 8. Builder/composition | UI only | Feature creation and destinations move outside the View. |
-| 9. VIPER | UI only | Interactor and Router become explicit, independent feature boundaries. |
-
-The central idea is responsibility moving outward:
-
-```text
-View owns everything
-    ↓
-View + shared Manager
-    ↓
-View + Manager boundary
-    ↓
-View + ViewModel
-    ↓
-ViewModel + injected dependencies
-    ↓
-ViewModel + feature protocol
-    ↓
-Presenter + Interactor + Router
-```
-
 ## Routing example
 
 `ProfileView` is a separate demonstration of the `CustomRouting` Swift package. It shows push navigation, sheets, full-screen covers, alerts, confirmation dialogs, custom modal presentation, and dismissal.
@@ -415,7 +563,8 @@ Architecture/
 │   └── Helpers.swift           # Product models and DataService
 └── Assets.xcassets/
 docs/
-├── 00-architecture-complexity-spectrum.jpg       # Overview of steps 1–4
+├── 00-architecture-complexity-spectrum.jpg       # Original overview of steps 1–4
+├── 00-architecture-progression-through-ribs.png  # Full progression through RIBs
 ├── 01-no-architecture-simple-view-service.jpg    # Step 1: View calls Service
 ├── 02-no-architecture-direct-service-dependencies.jpg # Transition: scaling problem
 ├── 03-mv-shared-environment-managers.jpg         # Step 2: MV
@@ -424,7 +573,8 @@ docs/
 ├── 06-mvvm-feature-interactor-protocols.jpg      # Step 6: feature protocols
 ├── 07-mvvm-shared-core-interactor.jpg            # Step 7: CoreInteractor
 ├── 08-mvvm-core-builder-composition.jpg          # Step 8: composition
-└── 09-viper-presenter-router.jpg                # Step 9: VIPER
+├── 09-viper-presenter-router.jpg                # Step 9: VIPER
+└── 10-ribs-root-core-onboarding.jpg              # Step 10: RIB module boundaries
 ```
 
 ## Current project notes
