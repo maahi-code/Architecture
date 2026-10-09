@@ -18,6 +18,7 @@ Each step adds a boundary when the previous step becomes difficult to test, reus
 - [Progression at a glance](#the-progression-at-a-glance)
 - [The 10 architecture steps](#the-architecture-progression)
 - [VIPER → RIBs](#10-ribs-scale-viper-into-separate-app-flows)
+- [Structs, classes, and the diagram shapes](#reading-the-shapes-structs-classes-and-protocols)
 - [How the current sample works](#how-the-current-sample-works)
 - [Routing example](#routing-example)
 - [Project structure](#project-structure)
@@ -483,6 +484,54 @@ Add a module boundary when a flow needs independent composition and ownership. A
 
 </details>
 
+## Reading the shapes: structs, classes, and protocols
+
+The shapes in this diagram describe the Swift type chosen for each architectural role. They explain how data and dependencies are represented; they do not specify where memory is allocated.
+
+<p align="center">
+  <img src="docs/11-architecture-type-shapes.jpg" alt="Type legend: diamonds and cylinders are structs, rectangles are classes, hexagons are protocols, and slanted shapes allow different concrete service types" width="100%">
+</p>
+
+### Shape legend
+
+| Shape | Meaning | Examples in this architecture |
+| --- | --- | --- |
+| **Diamond** | `struct` | SwiftUI Views, UI components, and preferred Model types. |
+| **Cylinder** | `struct` | `CoreBuilder`, `CoreRouter`, and `CoreInteractor`. A cylinder here does not mean a database. |
+| **Rectangle** | `class` | Managers and Presenters that need shared identity or observable state. |
+| **Hexagon** | `protocol` | The Router and Interactor capabilities a Presenter depends on. |
+| **Slanted shape** | Flexible implementation type | A Service can be a struct, class, or actor that satisfies its contract. “ANY” in the legend describes this flexibility; it is not a requirement to use Swift’s `Any` type. |
+
+### Why Managers and Presenters are classes
+
+A class is a **reference type**. Multiple owners can refer to the same instance, so they see the same stored state. A Presenter can keep its products, loading state, and user decisions in one observable object; a Manager can provide shared operations and, where needed, shared state.
+
+In the current sample, `ContentView` owns its `ContentPresenter` using `@State`. SwiftUI preserves that reference for the View’s identity as it recomputes the View. Managers are retained by the container and the objects that depend on them.
+
+**A class does not stay alive forever:** ARC keeps it alive while strong references remain and releases it when those references are gone. Ownership determines its lifetime. [Swift: reference types](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/classesandstructures/), [automatic reference counting](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/automaticreferencecounting/)
+
+### Why Views, Builders, Routers, and Interactors are structs
+
+A struct is a **value type**. Views and UI components describe the UI; Builders assemble features; Routers describe routing operations; and `CoreInteractor` forwards requests to Managers. These roles can use structs when they do not need their own shared mutable identity.
+
+A struct can still hold references to class instances. Copying `CoreInteractor` copies its stored Manager references, so both values can use the **same Managers**. Likewise, a struct Router can hold a reference to a navigation object. Structs store data too; value semantics do not imply that their contents are temporary or always allocated on the stack. [Swift: value and reference types](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/classesandstructures/)
+
+### Services: choose the implementation behind the contract
+
+The Manager receives a Service through dependency injection and uses its protocol. The concrete implementation can be:
+
+- **A struct** for operations that do not require shared mutable identity.
+- **A class** when a shared resource or reference identity is useful.
+- **An actor** when mutable state needs actor isolation. The Service protocol and calling code must support the actor’s isolation and any required `await` calls. [Swift: actors](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/concurrency/)
+
+The boundary remains **Manager → Service protocol → injected implementation**. Dependency injection keeps the Manager separate from implementation details.
+
+### Models: prefer structs, use classes when identity is needed
+
+Models represent data. Prefer structs for ordinary data values such as `Product`: value semantics make passing and transforming them easier to reason about. A Model can be a class when shared mutable identity or a persistence framework requires it.
+
+These are type choices for this architecture, rather than universal rules. Choose the type according to ownership, identity, mutation, and concurrency needs.
+
 ## How the current sample works
 
 The current `ContentView` is a **VIPER-style composition**:
@@ -574,7 +623,8 @@ docs/
 ├── 07-mvvm-shared-core-interactor.jpg            # Step 7: CoreInteractor
 ├── 08-mvvm-core-builder-composition.jpg          # Step 8: composition
 ├── 09-viper-presenter-router.jpg                # Step 9: VIPER
-└── 10-ribs-root-core-onboarding.jpg              # Step 10: RIB module boundaries
+├── 10-ribs-root-core-onboarding.jpg              # Step 10: RIB module boundaries
+└── 11-architecture-type-shapes.jpg               # Swift type choices and shape legend
 ```
 
 ## Current project notes
